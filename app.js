@@ -8,6 +8,7 @@ const PORT = process.env.PORT || 5000;
 const authRoutes = require('./routes/auth');
 const eventRoutes = require('./routes/events');
 const registrationRoutes = require('./routes/registrations');
+const adminRoutes = require('./routes/admin');
 
 // Middleware
 app.use(cors());
@@ -17,6 +18,7 @@ app.use(express.json());
 app.use('/auth', authRoutes);
 app.use('/events', eventRoutes);
 app.use('/registrations', registrationRoutes);
+app.use('/admin', adminRoutes);
 
 // Basic Route
 app.get('/', (req, res) => {
