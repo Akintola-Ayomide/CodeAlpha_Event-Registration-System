@@ -2,6 +2,7 @@ import express, { Response } from 'express';
 import prisma from '../prisma';
 import verifyToken from '../middleware/verifyToken';
 import { AuthRequest } from '../types';
+import { registrationSchema } from '../schemas';
 
 const router = express.Router();
 
@@ -10,18 +11,13 @@ router.use(verifyToken);
 // POST /registrations - Register logged-in user for an event
 router.post('/', async (req: AuthRequest, res: Response) => {
   try {
-    const { eventId } = req.body;
-
-    if (!eventId) {
-      res.status(400).json({ error: 'Event ID is required.' });
+    const parseResult = registrationSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      res.status(400).json({ error: parseResult.error.issues[0].message });
       return;
     }
 
-    const parsedEventId = parseInt(eventId, 10);
-    if (isNaN(parsedEventId)) {
-      res.status(400).json({ error: 'Invalid Event ID.' });
-      return;
-    }
+    const { eventId: parsedEventId } = parseResult.data;
 
     if (!req.userId) {
       res.status(401).json({ error: 'Unauthorized. User ID not found.' });

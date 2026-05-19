@@ -3,6 +3,7 @@ import prisma from '../prisma';
 import verifyToken from '../middleware/verifyToken';
 import verifyAdmin from '../middleware/verifyAdmin';
 import { AuthRequest } from '../types';
+import { eventCreateSchema, eventUpdateSchema } from '../schemas';
 
 const router = express.Router();
 
@@ -13,25 +14,14 @@ router.use(verifyAdmin);
 // POST /admin/events - Create a new event
 router.post('/events', async (req: AuthRequest, res: Response) => {
   try {
-    const { title, description, date, location, capacity } = req.body;
-
-    // Validation
-    if (!title || !date || !location || capacity === undefined) {
-      res.status(400).json({ error: 'Title, date, location, and capacity are required.' });
+    const parseResult = eventCreateSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      res.status(400).json({ error: parseResult.error.issues[0].message });
       return;
     }
 
-    const parsedCapacity = parseInt(capacity, 10);
-    if (isNaN(parsedCapacity) || parsedCapacity < 0) {
-      res.status(400).json({ error: 'Capacity must be a non-negative integer.' });
-      return;
-    }
-
+    const { title, description, date, location, capacity } = parseResult.data;
     const eventDate = new Date(date);
-    if (isNaN(eventDate.getTime())) {
-      res.status(400).json({ error: 'Invalid date format.' });
-      return;
-    }
 
     // Create Event
     const event = await prisma.event.create({
@@ -40,7 +30,7 @@ router.post('/events', async (req: AuthRequest, res: Response) => {
         description: description || '',
         date: eventDate,
         location,
-        capacity: parsedCapacity
+        capacity
       }
     });
 
@@ -73,7 +63,14 @@ router.put('/events/:id', async (req: AuthRequest, res: Response) => {
       return;
     }
 
-    const { title, description, date, location, capacity } = req.body;
+    const parseResult = eventUpdateSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      res.status(400).json({ error: parseResult.error.issues[0].message });
+      return;
+    }
+
+    const { title, description, date, location, capacity } = parseResult.data;
+    
     const updateData: {
       title?: string;
       description?: string;
@@ -85,24 +82,8 @@ router.put('/events/:id', async (req: AuthRequest, res: Response) => {
     if (title !== undefined) updateData.title = title;
     if (description !== undefined) updateData.description = description;
     if (location !== undefined) updateData.location = location;
-
-    if (date !== undefined) {
-      const eventDate = new Date(date);
-      if (isNaN(eventDate.getTime())) {
-        res.status(400).json({ error: 'Invalid date format.' });
-        return;
-      }
-      updateData.date = eventDate;
-    }
-
-    if (capacity !== undefined) {
-      const parsedCapacity = parseInt(capacity, 10);
-      if (isNaN(parsedCapacity) || parsedCapacity < 0) {
-        res.status(400).json({ error: 'Capacity must be a non-negative integer.' });
-        return;
-      }
-      updateData.capacity = parsedCapacity;
-    }
+    if (date !== undefined) updateData.date = new Date(date);
+    if (capacity !== undefined) updateData.capacity = capacity;
 
     // Update Event
     const updatedEvent = await prisma.event.update({

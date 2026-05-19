@@ -2,20 +2,22 @@ import express, { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../prisma';
+import { signupSchema, loginSchema } from '../schemas';
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecretjwtkey123';
+// JWT_SECRET is guaranteed to be set by src/index.ts
+const JWT_SECRET = process.env.JWT_SECRET as string;
 
 // POST /auth/signup
 router.post('/signup', async (req: Request, res: Response) => {
   try {
-    const { email, password, role } = req.body;
-
-    // Validation
-    if (!email || !password) {
-      res.status(400).json({ error: 'Email and password are required.' });
+    const parseResult = signupSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      res.status(400).json({ error: parseResult.error.issues[0].message });
       return;
     }
+
+    const { email, password, role } = parseResult.data;
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
@@ -33,8 +35,8 @@ router.post('/signup', async (req: Request, res: Response) => {
 
     // Validate and assign role (only allow USER or ADMIN, default USER)
     let userRole: 'USER' | 'ADMIN' = 'USER';
-    if (role && ['USER', 'ADMIN'].includes(role.toUpperCase())) {
-      userRole = role.toUpperCase() as 'USER' | 'ADMIN';
+    if (role) {
+      userRole = role;
     }
 
     // Create user in DB
@@ -73,13 +75,13 @@ router.post('/signup', async (req: Request, res: Response) => {
 // POST /auth/login
 router.post('/login', async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
-
-    // Validation
-    if (!email || !password) {
-      res.status(400).json({ error: 'Email and password are required.' });
+    const parseResult = loginSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      res.status(400).json({ error: parseResult.error.issues[0].message });
       return;
     }
+
+    const { email, password } = parseResult.data;
 
     // Find user
     const user = await prisma.user.findUnique({

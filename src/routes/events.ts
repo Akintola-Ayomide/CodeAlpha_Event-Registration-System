@@ -8,14 +8,14 @@ router.get('/', async (req: Request, res: Response) => {
   try {
     const events = await prisma.event.findMany({
       include: {
-        registrations: {
-          where: { status: 'CONFIRMED' }
+        _count: {
+          select: { registrations: { where: { status: 'CONFIRMED' } } }
         }
       }
     });
 
     const formattedEvents = events.map(event => {
-      const confirmedCount = event.registrations.length;
+      const confirmedCount = event._count.registrations;
       return {
         id: event.id,
         title: event.title,
@@ -47,8 +47,8 @@ router.get('/:id', async (req: Request, res: Response) => {
     const event = await prisma.event.findUnique({
       where: { id: eventId },
       include: {
-        registrations: {
-          where: { status: 'CONFIRMED' }
+        _count: {
+          select: { registrations: { where: { status: 'CONFIRMED' } } }
         }
       }
     });
@@ -58,7 +58,7 @@ router.get('/:id', async (req: Request, res: Response) => {
       return;
     }
 
-    const confirmedCount = event.registrations.length;
+    const confirmedCount = event._count.registrations;
     res.json({
       id: event.id,
       title: event.title,

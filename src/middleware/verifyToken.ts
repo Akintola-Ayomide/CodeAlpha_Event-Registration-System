@@ -14,7 +14,12 @@ const verifyToken = (req: Request, res: Response, next: NextFunction): void => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'supersecretjwtkey123') as JwtPayload;
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      res.status(500).json({ error: 'Internal configuration error.' });
+      return;
+    }
+    const decoded = jwt.verify(token, secret) as JwtPayload;
     const authReq = req as AuthRequest;
     authReq.userId = decoded.id;
     authReq.userRole = decoded.role;
