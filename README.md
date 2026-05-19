@@ -1,6 +1,6 @@
 # Event Registration System API
 
-A lightweight, robust full-stack REST API for managing users, events, and event registrations. Built with Node.js, Express, PostgreSQL, and Prisma ORM.
+A lightweight, robust REST API for managing users, events, and event registrations. Built with Node.js, Express, PostgreSQL, and Prisma ORM.
 
 ---
 
