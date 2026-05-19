@@ -1,10 +1,10 @@
-const express = require('express');
-const prisma = require('../prisma');
+import express, { Request, Response } from 'express';
+import prisma from '../prisma';
 
 const router = express.Router();
 
 // GET /events - Get all events (including calculated remaining slots)
-router.get('/', async (req, res) => {
+router.get('/', async (req: Request, res: Response) => {
   try {
     const events = await prisma.event.findMany({
       include: {
@@ -36,11 +36,12 @@ router.get('/', async (req, res) => {
 });
 
 // GET /events/:id - Get detailed event info by ID
-router.get('/:id', async (req, res) => {
+router.get('/:id', async (req: Request, res: Response) => {
   try {
     const eventId = parseInt(req.params.id, 10);
     if (isNaN(eventId)) {
-      return res.status(400).json({ error: 'Invalid event ID.' });
+      res.status(400).json({ error: 'Invalid event ID.' });
+      return;
     }
 
     const event = await prisma.event.findUnique({
@@ -53,7 +54,8 @@ router.get('/:id', async (req, res) => {
     });
 
     if (!event) {
-      return res.status(404).json({ error: 'Event not found.' });
+      res.status(404).json({ error: 'Event not found.' });
+      return;
     }
 
     const confirmedCount = event.registrations.length;
@@ -73,4 +75,4 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

@@ -1,7 +1,8 @@
-const express = require('express');
-const prisma = require('../prisma');
-const verifyToken = require('../middleware/verifyToken');
-const verifyAdmin = require('../middleware/verifyAdmin');
+import express, { Response } from 'express';
+import prisma from '../prisma';
+import verifyToken from '../middleware/verifyToken';
+import verifyAdmin from '../middleware/verifyAdmin';
+import { AuthRequest } from '../types';
 
 const router = express.Router();
 
@@ -10,23 +11,26 @@ router.use(verifyToken);
 router.use(verifyAdmin);
 
 // POST /admin/events - Create a new event
-router.post('/events', async (req, res) => {
+router.post('/events', async (req: AuthRequest, res: Response) => {
   try {
     const { title, description, date, location, capacity } = req.body;
 
     // Validation
     if (!title || !date || !location || capacity === undefined) {
-      return res.status(400).json({ error: 'Title, date, location, and capacity are required.' });
+      res.status(400).json({ error: 'Title, date, location, and capacity are required.' });
+      return;
     }
 
     const parsedCapacity = parseInt(capacity, 10);
     if (isNaN(parsedCapacity) || parsedCapacity < 0) {
-      return res.status(400).json({ error: 'Capacity must be a non-negative integer.' });
+      res.status(400).json({ error: 'Capacity must be a non-negative integer.' });
+      return;
     }
 
     const eventDate = new Date(date);
     if (isNaN(eventDate.getTime())) {
-      return res.status(400).json({ error: 'Invalid date format.' });
+      res.status(400).json({ error: 'Invalid date format.' });
+      return;
     }
 
     // Create Event
@@ -51,11 +55,12 @@ router.post('/events', async (req, res) => {
 });
 
 // PUT /admin/events/:id - Update event details
-router.put('/events/:id', async (req, res) => {
+router.put('/events/:id', async (req: AuthRequest, res: Response) => {
   try {
     const eventId = parseInt(req.params.id, 10);
     if (isNaN(eventId)) {
-      return res.status(400).json({ error: 'Invalid event ID.' });
+      res.status(400).json({ error: 'Invalid event ID.' });
+      return;
     }
 
     // Check if event exists
@@ -64,11 +69,18 @@ router.put('/events/:id', async (req, res) => {
     });
 
     if (!existingEvent) {
-      return res.status(404).json({ error: 'Event not found.' });
+      res.status(404).json({ error: 'Event not found.' });
+      return;
     }
 
     const { title, description, date, location, capacity } = req.body;
-    const updateData = {};
+    const updateData: {
+      title?: string;
+      description?: string;
+      location?: string;
+      date?: Date;
+      capacity?: number;
+    } = {};
 
     if (title !== undefined) updateData.title = title;
     if (description !== undefined) updateData.description = description;
@@ -77,7 +89,8 @@ router.put('/events/:id', async (req, res) => {
     if (date !== undefined) {
       const eventDate = new Date(date);
       if (isNaN(eventDate.getTime())) {
-        return res.status(400).json({ error: 'Invalid date format.' });
+        res.status(400).json({ error: 'Invalid date format.' });
+        return;
       }
       updateData.date = eventDate;
     }
@@ -85,7 +98,8 @@ router.put('/events/:id', async (req, res) => {
     if (capacity !== undefined) {
       const parsedCapacity = parseInt(capacity, 10);
       if (isNaN(parsedCapacity) || parsedCapacity < 0) {
-        return res.status(400).json({ error: 'Capacity must be a non-negative integer.' });
+        res.status(400).json({ error: 'Capacity must be a non-negative integer.' });
+        return;
       }
       updateData.capacity = parsedCapacity;
     }
@@ -107,11 +121,12 @@ router.put('/events/:id', async (req, res) => {
 });
 
 // DELETE /admin/events/:id - Delete an event (cascade deletes registrations because of DB schema relations)
-router.delete('/events/:id', async (req, res) => {
+router.delete('/events/:id', async (req: AuthRequest, res: Response) => {
   try {
     const eventId = parseInt(req.params.id, 10);
     if (isNaN(eventId)) {
-      return res.status(400).json({ error: 'Invalid event ID.' });
+      res.status(400).json({ error: 'Invalid event ID.' });
+      return;
     }
 
     // Check if event exists
@@ -120,7 +135,8 @@ router.delete('/events/:id', async (req, res) => {
     });
 
     if (!event) {
-      return res.status(404).json({ error: 'Event not found.' });
+      res.status(404).json({ error: 'Event not found.' });
+      return;
     }
 
     // Delete Event (which cascade deletes associated registrations in the database)
@@ -138,7 +154,7 @@ router.delete('/events/:id', async (req, res) => {
 });
 
 // GET /admin/registrations - View all registrations (for reporting)
-router.get('/registrations', async (req, res) => {
+router.get('/registrations', async (req: AuthRequest, res: Response) => {
   try {
     const registrations = await prisma.registration.findMany({
       include: {
@@ -164,4 +180,4 @@ router.get('/registrations', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

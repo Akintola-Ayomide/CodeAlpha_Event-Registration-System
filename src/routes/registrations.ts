@@ -1,24 +1,31 @@
-const express = require('express');
-const prisma = require('../prisma');
-const verifyToken = require('../middleware/verifyToken');
+import express, { Response } from 'express';
+import prisma from '../prisma';
+import verifyToken from '../middleware/verifyToken';
+import { AuthRequest } from '../types';
 
 const router = express.Router();
 
-// Apply verifyToken middleware to all routes in this router
 router.use(verifyToken);
 
 // POST /registrations - Register logged-in user for an event
-router.post('/', async (req, res) => {
+router.post('/', async (req: AuthRequest, res: Response) => {
   try {
     const { eventId } = req.body;
 
     if (!eventId) {
-      return res.status(400).json({ error: 'Event ID is required.' });
+      res.status(400).json({ error: 'Event ID is required.' });
+      return;
     }
 
     const parsedEventId = parseInt(eventId, 10);
     if (isNaN(parsedEventId)) {
-      return res.status(400).json({ error: 'Invalid Event ID.' });
+      res.status(400).json({ error: 'Invalid Event ID.' });
+      return;
+    }
+
+    if (!req.userId) {
+      res.status(401).json({ error: 'Unauthorized. User ID not found.' });
+      return;
     }
 
     // 1. Check if the event exists
@@ -27,7 +34,8 @@ router.post('/', async (req, res) => {
     });
 
     if (!event) {
-      return res.status(404).json({ error: 'Event not found.' });
+      res.status(404).json({ error: 'Event not found.' });
+      return;
     }
 
     // 2. Check if the user has already registered and is CONFIRMED
@@ -39,7 +47,8 @@ router.post('/', async (req, res) => {
     });
 
     if (existingRegistration && existingRegistration.status === 'CONFIRMED') {
-      return res.status(400).json({ error: 'You are already registered for this event.' });
+      res.status(400).json({ error: 'You are already registered for this event.' });
+      return;
     }
 
     // 3. Check event capacity (count CONFIRMED registrations)
@@ -51,7 +60,8 @@ router.post('/', async (req, res) => {
     });
 
     if (confirmedCount >= event.capacity) {
-      return res.status(400).json({ error: 'Event is at full capacity. No slots remaining.' });
+      res.status(400).json({ error: 'Event is at full capacity. No slots remaining.' });
+      return;
     }
 
     // 4. Create or update registration
@@ -86,8 +96,13 @@ router.post('/', async (req, res) => {
 });
 
 // GET /registrations/me - List all registrations of the logged-in user
-router.get('/me', async (req, res) => {
+router.get('/me', async (req: AuthRequest, res: Response) => {
   try {
+    if (!req.userId) {
+      res.status(401).json({ error: 'Unauthorized. User ID not found.' });
+      return;
+    }
+
     const registrations = await prisma.registration.findMany({
       where: { userId: req.userId },
       include: {
@@ -106,11 +121,17 @@ router.get('/me', async (req, res) => {
 });
 
 // DELETE /registrations/:id - Cancel a registration (update status to CANCELLED)
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const registrationId = parseInt(req.params.id, 10);
     if (isNaN(registrationId)) {
-      return res.status(400).json({ error: 'Invalid registration ID.' });
+      res.status(400).json({ error: 'Invalid registration ID.' });
+      return;
+    }
+
+    if (!req.userId) {
+      res.status(401).json({ error: 'Unauthorized. User ID not found.' });
+      return;
     }
 
     // Find the registration
@@ -119,16 +140,19 @@ router.delete('/:id', async (req, res) => {
     });
 
     if (!registration) {
-      return res.status(404).json({ error: 'Registration not found.' });
+      res.status(404).json({ error: 'Registration not found.' });
+      return;
     }
 
     // Ensure the registration belongs to the logged-in user
     if (registration.userId !== req.userId) {
-      return res.status(403).json({ error: 'Access denied. You can only cancel your own registrations.' });
+      res.status(403).json({ error: 'Access denied. You can only cancel your own registrations.' });
+      return;
     }
 
     if (registration.status === 'CANCELLED') {
-      return res.status(400).json({ message: 'Registration is already cancelled.', registration });
+      res.status(400).json({ message: 'Registration is already cancelled.', registration });
+      return;
     }
 
     // Update status to CANCELLED
@@ -148,4 +172,4 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

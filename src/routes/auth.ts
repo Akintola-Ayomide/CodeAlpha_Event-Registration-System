@@ -1,19 +1,20 @@
-const express = require('express');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const prisma = require('../prisma');
+import express, { Request, Response } from 'express';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import prisma from '../prisma';
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretjwtkey123';
 
 // POST /auth/signup
-router.post('/signup', async (req, res) => {
+router.post('/signup', async (req: Request, res: Response) => {
   try {
     const { email, password, role } = req.body;
 
     // Validation
     if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required.' });
+      res.status(400).json({ error: 'Email and password are required.' });
+      return;
     }
 
     // Check if user already exists
@@ -22,7 +23,8 @@ router.post('/signup', async (req, res) => {
     });
 
     if (existingUser) {
-      return res.status(400).json({ error: 'User with this email already exists.' });
+      res.status(400).json({ error: 'User with this email already exists.' });
+      return;
     }
 
     // Hash the password
@@ -30,9 +32,9 @@ router.post('/signup', async (req, res) => {
     const passwordHash = await bcrypt.hash(password, salt);
 
     // Validate and assign role (only allow USER or ADMIN, default USER)
-    let userRole = 'USER';
+    let userRole: 'USER' | 'ADMIN' = 'USER';
     if (role && ['USER', 'ADMIN'].includes(role.toUpperCase())) {
-      userRole = role.toUpperCase();
+      userRole = role.toUpperCase() as 'USER' | 'ADMIN';
     }
 
     // Create user in DB
@@ -69,13 +71,14 @@ router.post('/signup', async (req, res) => {
 });
 
 // POST /auth/login
-router.post('/login', async (req, res) => {
+router.post('/login', async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
 
     // Validation
     if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required.' });
+      res.status(400).json({ error: 'Email and password are required.' });
+      return;
     }
 
     // Find user
@@ -84,13 +87,15 @@ router.post('/login', async (req, res) => {
     });
 
     if (!user) {
-      return res.status(401).json({ error: 'Invalid email or password.' });
+      res.status(401).json({ error: 'Invalid email or password.' });
+      return;
     }
 
     // Verify password
     const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch) {
-      return res.status(401).json({ error: 'Invalid email or password.' });
+      res.status(401).json({ error: 'Invalid email or password.' });
+      return;
     }
 
     // Generate JWT
@@ -117,4 +122,4 @@ router.post('/login', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

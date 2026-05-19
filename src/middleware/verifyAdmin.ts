@@ -1,13 +1,18 @@
-const verifyAdmin = (req, res, next) => {
+import { Response, NextFunction } from 'express';
+import { AuthRequest } from '../types';
+
+const verifyAdmin = (req: AuthRequest, res: Response, next: NextFunction): void => {
   if (!req.user) {
-    return res.status(401).json({ error: 'Unauthorized. Authentication required.' });
+    res.status(401).json({ error: 'Unauthorized. Authentication required.' });
+    return;
   }
 
   if (req.user.role !== 'ADMIN') {
-    return res.status(403).json({ error: 'Access denied. Administrator privileges required.' });
+    res.status(403).json({ error: 'Access denied. Administrator privileges required.' });
+    return;
   }
 
   next();
 };
 
-module.exports = verifyAdmin;
+export default verifyAdmin;
