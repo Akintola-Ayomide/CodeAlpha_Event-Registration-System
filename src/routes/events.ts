@@ -38,7 +38,7 @@ router.get('/', async (req: Request, res: Response) => {
 // GET /events/:id - Get detailed event info by ID
 router.get('/:id', async (req: Request, res: Response) => {
   try {
-    const eventId = parseInt(req.params.id, 10);
+    const eventId = parseInt(req.params.id as string, 10);
     if (isNaN(eventId)) {
       res.status(400).json({ error: 'Invalid event ID.' });
       return;

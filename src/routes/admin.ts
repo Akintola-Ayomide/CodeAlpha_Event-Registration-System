@@ -57,7 +57,7 @@ router.post('/events', async (req: AuthRequest, res: Response) => {
 // PUT /admin/events/:id - Update event details
 router.put('/events/:id', async (req: AuthRequest, res: Response) => {
   try {
-    const eventId = parseInt(req.params.id, 10);
+    const eventId = parseInt(req.params.id as string, 10);
     if (isNaN(eventId)) {
       res.status(400).json({ error: 'Invalid event ID.' });
       return;
@@ -123,7 +123,7 @@ router.put('/events/:id', async (req: AuthRequest, res: Response) => {
 // DELETE /admin/events/:id - Delete an event (cascade deletes registrations because of DB schema relations)
 router.delete('/events/:id', async (req: AuthRequest, res: Response) => {
   try {
-    const eventId = parseInt(req.params.id, 10);
+    const eventId = parseInt(req.params.id as string, 10);
     if (isNaN(eventId)) {
       res.status(400).json({ error: 'Invalid event ID.' });
       return;

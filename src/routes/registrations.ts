@@ -123,7 +123,7 @@ router.get('/me', async (req: AuthRequest, res: Response) => {
 // DELETE /registrations/:id - Cancel a registration (update status to CANCELLED)
 router.delete('/:id', async (req: AuthRequest, res: Response) => {
   try {
-    const registrationId = parseInt(req.params.id, 10);
+    const registrationId = parseInt(req.params.id as string, 10);
     if (isNaN(registrationId)) {
       res.status(400).json({ error: 'Invalid registration ID.' });
       return;
